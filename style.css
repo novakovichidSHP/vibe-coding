@@ -4,6 +4,8 @@ body {
     padding: 0;
     background: #f4f4f4;
     color: #222;
+    overflow: hidden;
+    background: #111;
 }
 
 header, footer {
@@ -20,4 +22,21 @@ main {
     background: #fff;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+#blocker {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+#instructions {
+    color: #fff;
+    font-size: 2em;
+    text-align: center;
+    user-select: none;
 } 
