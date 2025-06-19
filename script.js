@@ -62,7 +62,7 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     // Управление
-    controls = new THREE.PointerLockControls(camera, document.body);
+    controls = new PointerLockControls(camera, document.body);
     scene.add(controls.getObject());
 
     // Удаляем инструкцию и блокер, чтобы не мешали
