@@ -1,6 +1,6 @@
 console.log('Сайт Vibe-2 успешно загружен!'); 
 
-let camera, scene, renderer, controls;
+let camera, scene, renderer;
 let objects = [];
 let raycaster;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
@@ -8,6 +8,7 @@ let canJump = false;
 let velocity = new THREE.Vector3();
 let direction = new THREE.Vector3();
 let prevTime = performance.now();
+let yaw = 0, pitch = 0;
 
 const blocker = document.getElementById('blocker');
 const instructions = document.getElementById('instructions');
@@ -15,11 +16,11 @@ const instructions = document.getElementById('instructions');
 init();
 // Сразу убираем блокер и активируем управление
 blocker.style.display = 'none';
-if (controls) controls.lock();
 animate();
 
 function init() {
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
+    camera.position.set(0, 10, 0);
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x222233);
     scene.fog = new THREE.Fog(0x222233, 0, 750);
@@ -61,15 +62,8 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // Управление
-    controls = new PointerLockControls(camera, document.body);
-    scene.add(controls.getObject());
-
-    // Удаляем инструкцию и блокер, чтобы не мешали
-    blocker.style.display = 'none';
-
     // Клавиши
-    const onKeyDown = function (event) {
+    document.addEventListener('keydown', function(event) {
         switch (event.code) {
             case 'ArrowUp':
             case 'KeyW': moveForward = true; break;
@@ -84,8 +78,8 @@ function init() {
                 canJump = false;
                 break;
         }
-    };
-    const onKeyUp = function (event) {
+    });
+    document.addEventListener('keyup', function(event) {
         switch (event.code) {
             case 'ArrowUp':
             case 'KeyW': moveForward = false; break;
@@ -96,14 +90,20 @@ function init() {
             case 'ArrowRight':
             case 'KeyD': moveRight = false; break;
         }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('keyup', onKeyUp);
+    });
+
+    // Мышь — поворот камеры
+    document.addEventListener('mousemove', function(event) {
+        // Только при зажатой левой кнопке мыши
+        if (event.buttons !== 1) return;
+        yaw -= event.movementX * 0.002;
+        pitch -= event.movementY * 0.002;
+        pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
+    });
 
     // Стрельба
     document.addEventListener('mousedown', function (event) {
-        if (!controls.isLocked) return;
-        shoot();
+        if (event.button === 0) shoot();
     });
 
     raycaster = new THREE.Raycaster();
@@ -117,7 +117,9 @@ function onWindowResize() {
 }
 
 function shoot() {
-    raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+    // Луч из центра экрана
+    const directionVector = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+    raycaster.set(camera.position, directionVector);
     const intersects = raycaster.intersectObjects(objects, false);
     if (intersects.length > 0) {
         const obj = intersects[0].object;
@@ -130,26 +132,29 @@ function shoot() {
 
 function animate() {
     requestAnimationFrame(animate);
-    if (controls.isLocked === true) {
-        const time = performance.now();
-        const delta = (time - prevTime) / 1000;
-        velocity.x -= velocity.x * 10.0 * delta;
-        velocity.z -= velocity.z * 10.0 * delta;
-        velocity.y -= 9.8 * 100.0 * delta; // гравитация
-        direction.z = Number(moveForward) - Number(moveBackward);
-        direction.x = Number(moveRight) - Number(moveLeft);
-        direction.normalize();
-        if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
-        if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
-        controls.moveRight(-velocity.x * delta);
-        controls.moveForward(-velocity.z * delta);
-        controls.getObject().position.y += velocity.y * delta;
-        if (controls.getObject().position.y < 10) {
-            velocity.y = 0;
-            controls.getObject().position.y = 10;
-            canJump = true;
-        }
-        prevTime = time;
+    const time = performance.now();
+    const delta = (time - prevTime) / 1000;
+    velocity.x -= velocity.x * 10.0 * delta;
+    velocity.z -= velocity.z * 10.0 * delta;
+    velocity.y -= 9.8 * 100.0 * delta; // гравитация
+    direction.z = Number(moveForward) - Number(moveBackward);
+    direction.x = Number(moveRight) - Number(moveLeft);
+    direction.normalize();
+    if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
+    if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
+    // Перемещение камеры
+    const forward = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+    const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+    camera.position.addScaledVector(forward, -velocity.z * delta);
+    camera.position.addScaledVector(right, -velocity.x * delta);
+    camera.position.y += velocity.y * delta;
+    if (camera.position.y < 10) {
+        velocity.y = 0;
+        camera.position.y = 10;
+        canJump = true;
     }
+    // Поворот камеры
+    camera.rotation.set(pitch, yaw, 0, 'YXZ');
+    prevTime = time;
     renderer.render(scene, camera);
 } 
