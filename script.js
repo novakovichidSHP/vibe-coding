@@ -13,6 +13,9 @@ const blocker = document.getElementById('blocker');
 const instructions = document.getElementById('instructions');
 
 init();
+// Сразу убираем блокер и активируем управление
+blocker.style.display = 'none';
+if (controls) controls.lock();
 animate();
 
 function init() {
@@ -62,16 +65,8 @@ function init() {
     controls = new THREE.PointerLockControls(camera, document.body);
     scene.add(controls.getObject());
 
-    instructions.addEventListener('click', function () {
-        controls.lock();
-    });
-
-    controls.addEventListener('lock', function () {
-        blocker.style.display = 'none';
-    });
-    controls.addEventListener('unlock', function () {
-        blocker.style.display = 'flex';
-    });
+    // Удаляем инструкцию и блокер, чтобы не мешали
+    blocker.style.display = 'none';
 
     // Клавиши
     const onKeyDown = function (event) {
